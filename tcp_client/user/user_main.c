@@ -105,6 +105,7 @@ user_tcp_recv_cb(void *arg, char *pusrdata, unsigned short length)
 
 	os_printf("tcp recv !!! %s \r\n", pusrdata);
 	debug_connection_info(arg, "recv_cb");
+//	espconn_disconnect((struct espconn*)arg);
 }
 /******************************************************************************
  * FunctionName : user_tcp_sent_cb
@@ -161,12 +162,20 @@ user_sent_data(struct espconn *pespconn)
 user_tcp_connect_cb(void *arg)
 {
 	struct espconn *pespconn = arg;
+	uint32 keepidle = 30;
+	uint32 keepintvl = 10;
+	uint32 keepcnt = 3;
 
 	os_printf("connect succeed !!! \r\n");
 
 	espconn_regist_recvcb(pespconn, user_tcp_recv_cb);
 	espconn_regist_sentcb(pespconn, user_tcp_sent_cb);
 	espconn_regist_disconcb(pespconn, user_tcp_discon_cb);
+
+	espconn_set_opt(pespconn, ESPCONN_KEEPALIVE);		// before espconn_set_keepalive
+	os_printf("%d\n", espconn_set_keepalive(pespconn, ESPCONN_KEEPIDLE, &keepidle));
+	os_printf("%d\n", espconn_set_keepalive(pespconn, ESPCONN_KEEPINTVL, &keepintvl));
+	os_printf("%d\n", espconn_set_keepalive(pespconn, ESPCONN_KEEPCNT, &keepcnt));
 
 	os_printf(IPSTR":%d -> "IPSTR":%d\n", IP2STR(pespconn->proto.tcp->local_ip), pespconn->proto.tcp->local_port,
 		IP2STR(pespconn->proto.tcp->remote_ip), pespconn->proto.tcp->remote_port);
@@ -187,8 +196,11 @@ user_tcp_recon_cb(void *arg, sint8 err)
 	//error occured , tcp connection broke. user can try to reconnect here. 
 
 	os_printf("reconnect callback, error code %d !!! \r\n",err);
+	os_timer_disarm(&user_timer);
+	os_timer_arm(&user_timer, 500, 0);
 
-	debug_connection_info(arg, "reconn_cb");
+
+//	debug_connection_info(arg, "reconn_cb");
 }
 
 /******************************************************************************
@@ -212,6 +224,28 @@ user_check_ip(void)
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
 		os_printf("got ip !!!"IPSTR" \r\n", IP2STR(&ipconfig.ip));
+//		if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
+//		{
+//			// Connect to tcp server as NET_DOMAIN
+//			user_tcp_conn.proto.tcp = &user_tcp;
+//			user_tcp_conn.type = ESPCONN_TCP;
+//			user_tcp_conn.state = ESPCONN_NONE;
+//	
+//			//		const char esp_tcp_server_ip[4] = {10,237,36,18}; // remote IP of TCP server
+//			const char esp_tcp_server_ip[4] = {192,168,2,207}; // remote IP of TCP server
+//	
+//			os_memcpy(user_tcp_conn.proto.tcp->remote_ip, esp_tcp_server_ip, 4);
+//	
+//			user_tcp_conn.proto.tcp->remote_port = 8080;  // remote port
+//	
+//			user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
+//	//		user_tcp_conn.proto.tcp->local_port = 9999; //local port of ESP8266
+//	
+//			espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
+//			espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
+//			espconn_connect(&user_tcp_conn); 
+//	
+//		}
 	} 
 	else 
 	{
@@ -241,8 +275,8 @@ user_check_ip(void)
 user_set_station_config(void)
 {
 
-	char ssid[32] = "Sina Plaza Office"; 
-	char password[64] = "urtheone"; 
+	char ssid[32] = "huang"; 
+	char password[64] = "sh19901222"; 
 
 	struct station_config stationConf; 
 
@@ -258,7 +292,7 @@ user_set_station_config(void)
 	wifi_station_set_config(&stationConf); 
 
 	//set a timer to check whether got ip from router succeed or not.
-	os_timer_disarm(&test_timer);
+		os_timer_disarm(&test_timer);
 	os_timer_setfn(&test_timer, (os_timer_func_t *)user_check_ip, NULL);
 	os_timer_arm(&test_timer, 100, 0);
 
@@ -274,36 +308,38 @@ static void info_timerfunc(os_event_t *events)
 	wifi_get_macaddr(STATION_IF, macaddr);
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 	os_printf_plus("Mac: "MACSTR" local IP: "IPSTR" rssi: %d timestamp: %d\n", MAC2STR(macaddr), IP2STR(&(ipconfig.ip)), rssi, timestamp);
+	system_print_meminfo();
 }
 static void user_timerfunc(os_event_t *events) 
 {
 	struct ip_info ipconfig;
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 
+
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
+		os_printf("user_timer\n");
 		// Connect to tcp server as NET_DOMAIN
 		user_tcp_conn.proto.tcp = &user_tcp;
 		user_tcp_conn.type = ESPCONN_TCP;
 		user_tcp_conn.state = ESPCONN_NONE;
 
 		//		const char esp_tcp_server_ip[4] = {10,237,36,18}; // remote IP of TCP server
-		const char esp_tcp_server_ip[4] = {45,78,38,250}; // remote IP of TCP server
+		const char esp_tcp_server_ip[4] = {192,168,2,207}; // remote IP of TCP server
 
 		os_memcpy(user_tcp_conn.proto.tcp->remote_ip, esp_tcp_server_ip, 4);
 
 		user_tcp_conn.proto.tcp->remote_port = 8080;  // remote port
 
 		user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
-//		user_tcp_conn.proto.tcp->local_port = 9999; //local port of ESP8266
 
 		espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
 		espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
-		espconn_set_opt(&user_tcp_conn, ESPCONN_KEEPALIVE);
-		espconn_set_opt(&user_tcp_conn, ESPCONN_NODELAY);
-		espconn_connect(&user_tcp_conn); 
 
-	} 
+		espconn_connect(&user_tcp_conn); 
+	} else {
+		os_printf("status: %d "IPSTR"\n", wifi_station_get_connect_status(), IP2STR(&ipconfig.ip));
+	}
 }
 
 	void ICACHE_FLASH_ATTR
@@ -311,7 +347,7 @@ user_timer_config(void )
 {
 	os_timer_disarm(&user_timer);
 	os_timer_setfn(&user_timer, (os_timer_func_t *)user_timerfunc, NULL);
-	os_timer_arm(&user_timer, 20000, 1);
+	os_timer_arm(&user_timer, 5000, 0);
 
 	os_timer_disarm(&info_timer);
 	os_timer_setfn(&info_timer, (os_timer_func_t *)info_timerfunc, NULL);
@@ -346,13 +382,13 @@ void user_init(void)
 	uart_init(115200, 115200);
 	os_printf("SDK version:%s\n", system_get_sdk_version());
 	os_printf("CPU Frequency: %d MHz\n", system_get_cpu_freq());
-//	system_update_cpu_freq(160);
-//	os_printf("CPU Frequency: %d MHz\n", system_get_cpu_freq());
+	//	system_update_cpu_freq(160);
+	//	os_printf("CPU Frequency: %d MHz\n", system_get_cpu_freq());
 
 	//Set softAP + station mode 
 	wifi_set_opmode(STATIONAP_MODE); 
 
-//	wifi_station_set_reconnect_policy(true);
+	//	wifi_station_set_reconnect_policy(true);
 
 	//ESP8266 connect to router
 	user_set_station_config();
