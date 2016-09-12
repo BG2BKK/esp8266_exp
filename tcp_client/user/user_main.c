@@ -294,8 +294,8 @@ static void user_timerfunc(os_event_t *events)
 
 		user_tcp_conn.proto.tcp->remote_port = 8080;  // remote port
 
-//		user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
-		user_tcp_conn.proto.tcp->local_port = 9999; //local port of ESP8266
+		user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
+//		user_tcp_conn.proto.tcp->local_port = 9999; //local port of ESP8266
 
 		espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
 		espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
