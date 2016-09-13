@@ -225,7 +225,7 @@ user_rf_cal_sector_set(void)
 }
 
 void ICACHE_FLASH_ATTR
-user_rf_pre_init(void)
+user_rf_pre_init(vod)
 {
 }
 
@@ -234,8 +234,9 @@ user_init(void)
 {
 	uart_init(115200, 115200);
     os_printf("SDK version:%s\n", system_get_sdk_version());
+//	smartconfig_set_type(SC_TYPE_ESPTOUCH); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
 //	smartconfig_set_type(SC_TYPE_AIRKISS); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
-	smartconfig_set_type(SC_TYPE_ESPTOUCH); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
+	smartconfig_set_type(SC_TYPE_ESPTOUCH_AIRKISS); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
     wifi_set_opmode(STATION_MODE);
     smartconfig_start(smartconfig_done);
 }

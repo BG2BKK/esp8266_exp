@@ -17,11 +17,11 @@
 #define MQTT_USER			"DVES_USER"
 #define MQTT_PASS			"DVES_PASS"
 
-//#define STA_SSID "Sina Plaza Mobile"
-//#define STA_PASS "urtheone"
+#define STA_SSID "Sina Plaza Mobile"
+#define STA_PASS "urtheone"
 
-#define STA_SSID "huang"
-#define STA_PASS "sh19901222"
+//#define STA_SSID "huang"
+//#define STA_PASS "sh19901222"
 
 #define STA_TYPE AUTH_WPA2_PSK
 
