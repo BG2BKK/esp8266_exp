@@ -16,7 +16,7 @@
 
 //#define NET_DOMAIN "cn.bing.com"
 #define NET_DOMAIN "localhost"
-#define pheadbuffer "GET /test HTTP/1.0\r\nUser-Agent: curl/7.37.0\r\nHost: %s\r\nAccept: */*\r\n\r\n"
+#define pheadbuffer "GET /test HTTP/1.1\r\nUser-Agent: curl/7.37.0\r\nHost: %s\r\nAccept: */*\r\n\r\n"
 
 #define packet_size   (2 * 1024)
 
@@ -28,6 +28,7 @@ ip_addr_t esp_server_ip;
 
 static volatile os_timer_t user_timer;
 static volatile os_timer_t info_timer;
+static void user_timerfunc(os_event_t *events);
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -104,7 +105,7 @@ user_tcp_recv_cb(void *arg, char *pusrdata, unsigned short length)
 	//received some data from tcp connection
 
 	os_printf("tcp recv !!! %s \r\n", pusrdata);
-	debug_connection_info(arg, "recv_cb");
+	debug_connection_info((struct espconn*)arg, "recv_cb");
 //	espconn_disconnect((struct espconn*)arg);
 }
 /******************************************************************************
@@ -193,14 +194,10 @@ user_tcp_connect_cb(void *arg)
 	LOCAL void ICACHE_FLASH_ATTR
 user_tcp_recon_cb(void *arg, sint8 err)
 {
-	//error occured , tcp connection broke. user can try to reconnect here. 
-
 	os_printf("reconnect callback, error code %d !!! \r\n",err);
 	os_timer_disarm(&user_timer);
-	os_timer_arm(&user_timer, 500, 0);
-
-
-//	debug_connection_info(arg, "reconn_cb");
+	os_timer_setfn(&user_timer, (os_timer_func_t *)user_timerfunc, NULL);
+	os_timer_arm(&user_timer, 1000, 0);
 }
 
 /******************************************************************************
@@ -224,28 +221,6 @@ user_check_ip(void)
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
 		os_printf("got ip !!!"IPSTR" \r\n", IP2STR(&ipconfig.ip));
-//		if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
-//		{
-//			// Connect to tcp server as NET_DOMAIN
-//			user_tcp_conn.proto.tcp = &user_tcp;
-//			user_tcp_conn.type = ESPCONN_TCP;
-//			user_tcp_conn.state = ESPCONN_NONE;
-//	
-//			//		const char esp_tcp_server_ip[4] = {10,237,36,18}; // remote IP of TCP server
-//			const char esp_tcp_server_ip[4] = {192,168,2,207}; // remote IP of TCP server
-//	
-//			os_memcpy(user_tcp_conn.proto.tcp->remote_ip, esp_tcp_server_ip, 4);
-//	
-//			user_tcp_conn.proto.tcp->remote_port = 8080;  // remote port
-//	
-//			user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
-//	//		user_tcp_conn.proto.tcp->local_port = 9999; //local port of ESP8266
-//	
-//			espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
-//			espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
-//			espconn_connect(&user_tcp_conn); 
-//	
-//		}
 	} 
 	else 
 	{
@@ -275,8 +250,8 @@ user_check_ip(void)
 user_set_station_config(void)
 {
 
-	char ssid[32] = "huang"; 
-	char password[64] = "sh19901222"; 
+	char ssid[32] = "Sina Plaza Mobile"; 
+	char password[64] = "urtheone"; 
 
 	struct station_config stationConf; 
 
@@ -308,34 +283,39 @@ static void info_timerfunc(os_event_t *events)
 	wifi_get_macaddr(STATION_IF, macaddr);
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 	os_printf_plus("Mac: "MACSTR" local IP: "IPSTR" rssi: %d timestamp: %d\n", MAC2STR(macaddr), IP2STR(&(ipconfig.ip)), rssi, timestamp);
-	system_print_meminfo();
+	os_printf("%d %d %d\n", user_tcp_conn.type, user_tcp_conn.state, ESPCONN_CLOSE );
+//	system_print_meminfo();
 }
+
+
 static void user_timerfunc(os_event_t *events) 
 {
 	struct ip_info ipconfig;
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 
-
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
-		os_printf("user_timer\n");
-		// Connect to tcp server as NET_DOMAIN
-		user_tcp_conn.proto.tcp = &user_tcp;
-		user_tcp_conn.type = ESPCONN_TCP;
-		user_tcp_conn.state = ESPCONN_NONE;
+//	os_printf("%d\n", user_tcp_conn.proto.tcp->remote_port);
 
-		//		const char esp_tcp_server_ip[4] = {10,237,36,18}; // remote IP of TCP server
-		const char esp_tcp_server_ip[4] = {192,168,2,207}; // remote IP of TCP server
+//		if (user_tcp_conn.proto.tcp->remote_port == 0) {
 
-		os_memcpy(user_tcp_conn.proto.tcp->remote_ip, esp_tcp_server_ip, 4);
+			// Connect to tcp server as NET_DOMAIN
+			user_tcp_conn.proto.tcp = &user_tcp;
+			user_tcp_conn.type = ESPCONN_TCP;
+			user_tcp_conn.state = ESPCONN_NONE;
 
-		user_tcp_conn.proto.tcp->remote_port = 8080;  // remote port
+//			const char esp_tcp_server_ip[4] = {192,168,2,207}; // remote IP of TCP server
+			const char esp_tcp_server_ip[4] = {10,237,35,104}; // remote IP of TCP server
 
-		user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
+			os_memcpy(user_tcp_conn.proto.tcp->remote_ip, esp_tcp_server_ip, 4);
 
-		espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
-		espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
+			user_tcp_conn.proto.tcp->remote_port = 8020;  // remote port
 
+			user_tcp_conn.proto.tcp->local_port = espconn_port(); //local port of ESP8266
+
+			espconn_regist_connectcb(&user_tcp_conn, user_tcp_connect_cb); // register connect callback
+			espconn_regist_reconcb(&user_tcp_conn, user_tcp_recon_cb); // register reconnect callback as error handler
+//		}
 		espconn_connect(&user_tcp_conn); 
 	} else {
 		os_printf("status: %d "IPSTR"\n", wifi_station_get_connect_status(), IP2STR(&ipconfig.ip));
