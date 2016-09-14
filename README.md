@@ -21,3 +21,6 @@ ESP8266 NONOS SDK experiment
 	* 第一次启动时，开启AP+Station模式，Station模式肯定是连不上网的，因为出厂时没有预设AP+Passwd; AP模式可以开启tcp server，用于手机配置它联网；Station能连上网后，将模式设置为STATION模式，并提示用户，用户设备即将从8266发出的AP断开，原因是该AP消失；Station模式连上网后，将配置写入指定SPI Flash地址中，下次启动将从这个地址读取数据；再次启动时，读取指定地址的配置，如果没有，则等待从AP获取。
 	* 中途连接时，所有状态通过oled显示
 	* 第二种方案是，初始化启动时，首先从指定SPI Flash读取之前的配置，并连接路由器，如果能连接成功，则开始正常工作；如果未能读取SPI Flash，或者连接路由器不成功，则开启ESP touch或者ESP Airkiss进行smartconfig；配置成功并连接路由器成功后，将新的配置写入SPI FLash中，提示用户连接成功，即将重启；第二次启动时，从指定地址读取之前配置，然后连接路由器
+
+* [demo]
+	* 实现以上产品方案

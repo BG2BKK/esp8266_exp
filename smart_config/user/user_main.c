@@ -234,9 +234,10 @@ user_init(void)
 {
 	uart_init(115200, 115200);
     os_printf("SDK version:%s\n", system_get_sdk_version());
+	esptouch_set_timeout(10);
 //	smartconfig_set_type(SC_TYPE_ESPTOUCH); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
 //	smartconfig_set_type(SC_TYPE_AIRKISS); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
 	smartconfig_set_type(SC_TYPE_ESPTOUCH_AIRKISS); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
     wifi_set_opmode(STATION_MODE);
-    smartconfig_start(smartconfig_done);
+    smartconfig_start(smartconfig_done, 1);
 }
