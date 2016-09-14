@@ -176,8 +176,12 @@ user_esp_platform_check_ip(void)
 user_set_station_config(void)
 {
 	// Wifi configuration 
-	char ssid[32] = "Sina Plaza Office"; 
-	char password[64] = "urtheone"; 
+//	char ssid[32] = "Sina Plaza Office"; 
+//	char password[64] = "urtheone"; 
+
+	char ssid[32] = "huang"; 
+	char password[64] = "sh19901222"; 
+
 	struct station_config stationConf; 
 
 	os_memset(stationConf.ssid, 0, 32);
