@@ -35,6 +35,8 @@ static void info_timerfunc(os_event_t *events);
 static volatile os_timer_t mqtt_timer;
 static void mqtt_timerfunc(os_event_t *events);
 
+void ICACHE_FLASH_ATTR user_timer_config(void);
+
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
  * Description  : SDK just reversed 4 sectors, used for rf init data and paramters.
@@ -215,6 +217,7 @@ void ICACHE_FLASH_ATTR user_check_ip(void *t)
 {
 	struct ip_info ipconfig;
 	u32 recon_interval = 0;
+	u8 status;
 
 	//disarm timer first
 	os_timer_disarm(&check_ip_timer);
@@ -222,14 +225,18 @@ void ICACHE_FLASH_ATTR user_check_ip(void *t)
 	//get ip info of ESP8266 station
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 
+	status = wifi_station_get_connect_status();
+
 //	os_printf("station status: %d\n", wifi_station_get_connect_status() );
-	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
+	if (status == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
 		os_printf("got ip !!!"IPSTR" \r\n", IP2STR(&ipconfig.ip));
 		if(sysCfg.cfg_holder != CFG_HOLDER) {
 			sysCfg.cfg_holder = CFG_HOLDER;
 			CFG_Save(&sysCfg);
 		}
+		user_timer_config();
+	//	wifiConnectCb(status);
 	}
 	else 
 	{
@@ -273,7 +280,7 @@ user_set_station_config(SYSCFG *sysCfg)
 	//set a timer to check whether got ip from router succeed or not.
 	os_timer_disarm(&check_ip_timer);
 	os_timer_setfn(&check_ip_timer, (os_timer_func_t *)user_check_ip, NULL);
-	os_timer_arm(&check_ip_timer, 100, 0);
+	os_timer_arm(&check_ip_timer, 1000, 0);
 }
 
 static void info_timerfunc(os_event_t *events) 
@@ -330,8 +337,8 @@ static void mqtt_timerfunc(os_event_t *events)
 	os_timer_disarm(&mqtt_timer);
 	status = wifi_station_get_connect_status();
 	if(status == STATION_GOT_IP) {
-		MQTT_Connect(&mqttClient);
 		os_printf("Mqtt service start\n");
+		MQTT_Connect(&mqttClient);
 	} else {
 		MQTT_Disconnect(&mqttClient);
 		os_timer_setfn(&mqtt_timer, (os_timer_func_t *)mqtt_timerfunc, NULL);
@@ -341,9 +348,9 @@ static void mqtt_timerfunc(os_event_t *events)
 
 void ICACHE_FLASH_ATTR user_timer_config(void )
 {
-	os_timer_disarm(&user_timer);
-	os_timer_setfn(&user_timer, (os_timer_func_t *)user_timerfunc, NULL);
-	os_timer_arm(&user_timer, 5000, 0);
+//	os_timer_disarm(&user_timer);
+//	os_timer_setfn(&user_timer, (os_timer_func_t *)user_timerfunc, NULL);
+//	os_timer_arm(&user_timer, 5000, 0);
 
 	os_timer_disarm(&info_timer);
 	os_timer_setfn(&info_timer, (os_timer_func_t *)info_timerfunc, NULL);
@@ -351,7 +358,7 @@ void ICACHE_FLASH_ATTR user_timer_config(void )
 
 	os_timer_disarm(&mqtt_timer);
 	os_timer_setfn(&mqtt_timer, (os_timer_func_t *)mqtt_timerfunc, NULL);
-	os_timer_arm(&mqtt_timer, 5000, 0);
+	os_timer_arm(&mqtt_timer, 5000, 1);
 
 	os_printf("\n\n==================================\n\n");
 }
@@ -377,7 +384,7 @@ void user_init(void)
 		os_printf("SSID: %s  PWD: %s\n", sysCfg.sta_ssid, sysCfg.sta_pwd);
 		user_set_station_config(&sysCfg);
 	}
-	CFG_config(&sysCfg);
 	user_mqtt_init();
-	user_timer_config();
+//	user_timer_config();
+//	MQTT_Connect(&mqttClient);
 }

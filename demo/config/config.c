@@ -45,8 +45,8 @@ CFG_Save(SYSCFG * sysCfg)
 {
 	 spi_flash_read((CFG_LOCATION + 3) * SPI_FLASH_SEC_SIZE,
 	                   (uint32 *)&saveFlag, sizeof(SAVE_FLAG));
-	os_printf("save_SSID: %s\n", sysCfg->sta_ssid);
-	os_printf("save_PWD: %s\n", sysCfg->sta_pwd);
+//	os_printf("save_SSID: %s\n", sysCfg->sta_ssid);
+//	os_printf("save_PWD: %s\n", sysCfg->sta_pwd);
 	if (saveFlag.flag == 0) {
 		spi_flash_erase_sector(CFG_LOCATION + 1);
 		spi_flash_write((CFG_LOCATION + 1) * SPI_FLASH_SEC_SIZE,
@@ -113,6 +113,8 @@ void ICACHE_FLASH_ATTR CFG_config(SYSCFG *sysCfg)
 	sysCfg->mqtt_port = MQTT_PORT;
 	os_strncpy(sysCfg->mqtt_user, MQTT_USER, sizeof(sysCfg->mqtt_user) - 1);
 	os_strncpy(sysCfg->mqtt_pass, MQTT_PASS, sizeof(sysCfg->mqtt_pass) - 1);
+	sysCfg->mqtt_keepalive = MQTT_KEEPALIVE;
+	sysCfg->security = 0;
 
-	INFO(" CFG_config\r\n");
+	INFO("CFG_config\r\n");
 }

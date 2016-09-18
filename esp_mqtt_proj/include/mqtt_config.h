@@ -7,7 +7,8 @@
 
 /*DEFAULT CONFIGURATIONS*/
 
-#define MQTT_HOST			"192.168.1.101" //or "mqtt.yourdomain.com"
+#define MQTT_HOST			"192.168.2.163" //or "mqtt.yourdomain.com"
+//#define MQTT_HOST			"192.168.1.101" //or "mqtt.yourdomain.com"
 //#define MQTT_HOST			"45.78.38.250" //or "mqtt.yourdomain.com"
 //#define MQTT_HOST			"10.237.36.18" //or "mqtt.yourdomain.com"
 #define MQTT_PORT			1883
@@ -18,14 +19,14 @@
 #define MQTT_USER			"DVES_USER"
 #define MQTT_PASS			"DVES_PASS"
 
-#define STA_SSID "TP-LINK_A0E338"
-#define STA_PASS "huanghuang"
+// #define STA_SSID "TP-LINK_A0E338"
+// #define STA_PASS "huanghuang"
 
 //#define STA_SSID "Sina Plaza Mobile"
 //#define STA_PASS "urtheone"
 
-//#define STA_SSID "huang"
-//#define STA_PASS "sh19901222"
+#define STA_SSID "huang"
+#define STA_PASS "sh19901222"
 
 #define STA_TYPE AUTH_WPA2_PSK
 

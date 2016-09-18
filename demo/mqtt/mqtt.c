@@ -822,6 +822,7 @@ MQTT_Connect(MQTT_Client *mqttClient)
 		}
 		else
 		{
+			os_printf("mqtt_connect start\n");
 			espconn_connect(mqttClient->pCon);
 		}
 	}

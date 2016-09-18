@@ -1,6 +1,7 @@
 #include "_mqtt.h"
 
 extern MQTT_Client mqttClient;
+extern os_timer_t mqtt_timer;
 
 void wifiConnectCb(uint8_t status)
 {
@@ -59,9 +60,10 @@ void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const cha
 
 void ICACHE_FLASH_ATTR user_mqtt_init(void)
 {
-
+	CFG_config(&sysCfg);
 	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
-	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
+//	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
+	MQTT_InitClient(&mqttClient, sysCfg.device_id, NULL, NULL, sysCfg.mqtt_keepalive, 1);
 
 	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
 	MQTT_OnConnected(&mqttClient, mqttConnectedCb);
