@@ -90,10 +90,10 @@ void mqttDataCb(uint32_t *args, const char* topic, uint32_t topic_len, const cha
 
 	INFO("Receive topic: %s, data: %s \r\n", topicBuf, dataBuf);
 	MQTT_Publish(client, "/mqtt/pub/topic/0", dataBuf, data_len, 0, 0);
+
 	os_free(topicBuf);
 	os_free(dataBuf);
 }
-
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -139,7 +139,6 @@ user_rf_cal_sector_set(void)
     
     return rf_cal_sec;
 }
-
 
 void user_init(void)
 {

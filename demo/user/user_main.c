@@ -2,29 +2,13 @@
 #include "osapi.h"
 
 #include "user_interface.h"
-
-#include "user_webserver.h"
+#include "mem.h"
+#include "espconn.h"
+#include "uart.h"
 
 #include "config.h"
-#include "espconn.h"
-#include "mem.h"
-
-#include "smartconfig.h"
-#include "airkiss.h"
-
-#define DEVICE_TYPE 		"gh_9e2cff3dfa51" //wechat public number
-#define DEVICE_ID 			"122475" //model ID
-
-#define DEFAULT_LAN_PORT 	12476
-
-LOCAL esp_udp ssdp_udp;
-LOCAL struct espconn pssdpudpconn;
-LOCAL os_timer_t ssdp_time_serv;
-
-uint8_t  lan_buf[200];
-uint16_t lan_buf_len;
-uint8 	 udp_sent_cnt = 0;
-
+#include "sc.h"
+#include "_mqtt.h"
 
 //#define NET_DOMAIN "cn.bing.com"
 #define NET_DOMAIN "localhost"
@@ -32,20 +16,24 @@ uint8 	 udp_sent_cnt = 0;
 
 #define packet_size   (2 * 1024)
 
-LOCAL os_timer_t test_timer;
 LOCAL os_timer_t check_ip_timer;
 LOCAL struct espconn user_tcp_conn;
 LOCAL struct _esp_tcp user_tcp;
 ip_addr_t tcp_server_ip;
 ip_addr_t esp_server_ip;
 
-	SYSCFG sysCfg;
-	SAVE_FLAG saveFlag;
-
+MQTT_Client mqttClient;
+SYSCFG sysCfg;
+SAVE_FLAG saveFlag;
 
 static volatile os_timer_t user_timer;
-static volatile os_timer_t info_timer;
 static void user_timerfunc(os_event_t *events);
+
+static volatile os_timer_t info_timer;
+static void info_timerfunc(os_event_t *events);
+
+static volatile os_timer_t mqtt_timer;
+static void mqtt_timerfunc(os_event_t *events);
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -223,18 +211,18 @@ user_tcp_recon_cb(void *arg, sint8 err)
  * Parameters   : none
  * Returns      : none
  *******************************************************************************/
-	void ICACHE_FLASH_ATTR
-user_check_ip(void)
+void ICACHE_FLASH_ATTR user_check_ip(void *t)
 {
 	struct ip_info ipconfig;
+	u32 recon_interval = 0;
 
 	//disarm timer first
-	os_timer_disarm(&test_timer);
+	os_timer_disarm(&check_ip_timer);
 
 	//get ip info of ESP8266 station
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 
-	os_printf("station status: %d\n", wifi_station_get_connect_status() );
+//	os_printf("station status: %d\n", wifi_station_get_connect_status() );
 	if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) 
 	{
 		os_printf("got ip !!!"IPSTR" \r\n", IP2STR(&ipconfig.ip));
@@ -242,7 +230,7 @@ user_check_ip(void)
 			sysCfg.cfg_holder = CFG_HOLDER;
 			CFG_Save(&sysCfg);
 		}
-	} 
+	}
 	else 
 	{
 		if ((wifi_station_get_connect_status() == STATION_WRONG_PASSWORD ||
@@ -250,16 +238,16 @@ user_check_ip(void)
 					wifi_station_get_connect_status() == STATION_CONNECT_FAIL)) 
 		{
 			os_printf("connect fail !!! \r\n");
+			recon_interval = 3000;
 		} 
 		else 
 		{
-			//re-arm timer to check ip
-			os_timer_setfn(&test_timer, (os_timer_func_t *)user_check_ip, NULL);
-			os_timer_arm(&test_timer, 300, 0);
+			recon_interval = 300;
 		}
+		os_timer_setfn(&check_ip_timer, (os_timer_func_t *)user_check_ip, NULL);
+		os_timer_arm(&check_ip_timer, 300, 0);
 	}
 }
-
 
 /******************************************************************************
  * FunctionName : user_set_station_config
@@ -270,7 +258,6 @@ user_check_ip(void)
 	void ICACHE_FLASH_ATTR
 user_set_station_config(SYSCFG *sysCfg)
 {
-
 	struct station_config stationConf; 
 	os_memset(stationConf.ssid, 0, 32);
 	os_memset(stationConf.password, 0, 64);
@@ -284,9 +271,9 @@ user_set_station_config(SYSCFG *sysCfg)
 	wifi_station_set_config(&stationConf); 
 
 	//set a timer to check whether got ip from router succeed or not.
-	os_timer_disarm(&test_timer);
-	os_timer_setfn(&test_timer, (os_timer_func_t *)user_check_ip, NULL);
-	os_timer_arm(&test_timer, 100, 0);
+	os_timer_disarm(&check_ip_timer);
+	os_timer_setfn(&check_ip_timer, (os_timer_func_t *)user_check_ip, NULL);
+	os_timer_arm(&check_ip_timer, 100, 0);
 }
 
 static void info_timerfunc(os_event_t *events) 
@@ -300,9 +287,8 @@ static void info_timerfunc(os_event_t *events)
 	wifi_get_ip_info(STATION_IF, &ipconfig);
 	os_printf_plus("Mac: "MACSTR" local IP: "IPSTR" rssi: %d timestamp: %d\n", MAC2STR(macaddr), IP2STR(&(ipconfig.ip)), rssi, timestamp);
 	os_printf("%d %d %d\n", user_tcp_conn.type, user_tcp_conn.state, ESPCONN_CLOSE );
-//	system_print_meminfo();
+	os_printf("connect_status: %d\n", wifi_station_get_connect_status());
 }
-
 
 static void user_timerfunc(os_event_t *events) 
 {
@@ -338,8 +324,22 @@ static void user_timerfunc(os_event_t *events)
 	}
 }
 
-	void ICACHE_FLASH_ATTR
-user_timer_config(void )
+static void mqtt_timerfunc(os_event_t *events)
+{
+	s8 status = 0;
+	os_timer_disarm(&mqtt_timer);
+	status = wifi_station_get_connect_status();
+	if(status == STATION_GOT_IP) {
+		MQTT_Connect(&mqttClient);
+		os_printf("Mqtt service start\n");
+	} else {
+		MQTT_Disconnect(&mqttClient);
+		os_timer_setfn(&mqtt_timer, (os_timer_func_t *)mqtt_timerfunc, NULL);
+		os_timer_arm(&mqtt_timer, 5000, 0);
+	}
+}
+
+void ICACHE_FLASH_ATTR user_timer_config(void )
 {
 	os_timer_disarm(&user_timer);
 	os_timer_setfn(&user_timer, (os_timer_func_t *)user_timerfunc, NULL);
@@ -349,193 +349,13 @@ user_timer_config(void )
 	os_timer_setfn(&info_timer, (os_timer_func_t *)info_timerfunc, NULL);
 	os_timer_arm(&info_timer, 5000, 1);
 
+	os_timer_disarm(&mqtt_timer);
+	os_timer_setfn(&mqtt_timer, (os_timer_func_t *)mqtt_timerfunc, NULL);
+	os_timer_arm(&mqtt_timer, 5000, 0);
+
 	os_printf("\n\n==================================\n\n");
 }
 
-	LOCAL void ICACHE_FLASH_ATTR
-user_esp_platform_dns_found(const char *name, ip_addr_t *ipaddr, void *arg)
-{
-	struct espconn *pespconn = (struct espconn *)arg;
-	if (ipaddr != NULL)
-		os_printf("user_esp_platform_dns_found %d.%d.%d.%d\n",
-				*((uint8 *)&ipaddr->addr), *((uint8 *)&ipaddr->addr + 1),
-				*((uint8 *)&ipaddr->addr + 2), *((uint8 *)&ipaddr->addr + 3));
-}
-void dns_test(void) {
-	struct espconn pespconn ;
-	espconn_gethostbyname(&pespconn,"iot.espressif.cn", &esp_server_ip,
-			user_esp_platform_dns_found);
-}
-
-const airkiss_config_t akconf =
-{
-	(airkiss_memset_fn)&memset,
-	(airkiss_memcpy_fn)&memcpy,
-	(airkiss_memcmp_fn)&memcmp,
-	0,
-};
-
-LOCAL void ICACHE_FLASH_ATTR
-airkiss_wifilan_time_callback(void)
-{
-	uint16 i;
-	airkiss_lan_ret_t ret;
-	
-	if ((udp_sent_cnt++) >30) {
-		udp_sent_cnt = 0;
-		os_timer_disarm(&ssdp_time_serv);//s
-		//return;
-	}
-
-	ssdp_udp.remote_port = DEFAULT_LAN_PORT;
-	ssdp_udp.remote_ip[0] = 255;
-	ssdp_udp.remote_ip[1] = 255;
-	ssdp_udp.remote_ip[2] = 255;
-	ssdp_udp.remote_ip[3] = 255;
-	lan_buf_len = sizeof(lan_buf);
-	ret = airkiss_lan_pack(AIRKISS_LAN_SSDP_NOTIFY_CMD,
-		DEVICE_TYPE, DEVICE_ID, 0, 0, lan_buf, &lan_buf_len, &akconf);
-	if (ret != AIRKISS_LAN_PAKE_READY) {
-		os_printf("Pack lan packet error!");
-		return;
-	}
-	
-	ret = espconn_sendto(&pssdpudpconn, lan_buf, lan_buf_len);
-	if (ret != 0) {
-		os_printf("UDP send error!");
-	}
-	os_printf("Finish send notify!\n");
-}
-
-LOCAL void ICACHE_FLASH_ATTR
-airkiss_wifilan_recv_callbk(void *arg, char *pdata, unsigned short len)
-{
-	uint16 i;
-	remot_info* pcon_info = NULL;
-		
-	airkiss_lan_ret_t ret = airkiss_lan_recv(pdata, len, &akconf);
-	airkiss_lan_ret_t packret;
-	
-	switch (ret){
-	case AIRKISS_LAN_SSDP_REQ:
-		espconn_get_connection_info(&pssdpudpconn, &pcon_info, 0);
-		os_printf("remote ip: %d.%d.%d.%d \r\n",pcon_info->remote_ip[0],pcon_info->remote_ip[1],
-			                                    pcon_info->remote_ip[2],pcon_info->remote_ip[3]);
-		os_printf("remote port: %d \r\n",pcon_info->remote_port);
-      
-        pssdpudpconn.proto.udp->remote_port = pcon_info->remote_port;
-		os_memcpy(pssdpudpconn.proto.udp->remote_ip,pcon_info->remote_ip,4);
-		ssdp_udp.remote_port = DEFAULT_LAN_PORT;
-		
-		lan_buf_len = sizeof(lan_buf);
-		packret = airkiss_lan_pack(AIRKISS_LAN_SSDP_RESP_CMD,
-			DEVICE_TYPE, DEVICE_ID, 0, 0, lan_buf, &lan_buf_len, &akconf);
-		
-		if (packret != AIRKISS_LAN_PAKE_READY) {
-			os_printf("Pack lan packet error!");
-			return;
-		}
-
-		os_printf("\r\n\r\n");
-		for (i=0; i<lan_buf_len; i++)
-			os_printf("%c",lan_buf[i]);
-		os_printf("\r\n\r\n");
-		
-		packret = espconn_sendto(&pssdpudpconn, lan_buf, lan_buf_len);
-		if (packret != 0) {
-			os_printf("LAN UDP Send err!");
-		}
-		
-		break;
-	default:
-		os_printf("Pack is not ssdq req!%d\r\n",ret);
-		break;
-	}
-}
-
-void ICACHE_FLASH_ATTR
-airkiss_start_discover(void)
-{
-	ssdp_udp.local_port = DEFAULT_LAN_PORT;
-	pssdpudpconn.type = ESPCONN_UDP;
-	pssdpudpconn.proto.udp = &(ssdp_udp);
-	espconn_regist_recvcb(&pssdpudpconn, airkiss_wifilan_recv_callbk);
-	espconn_create(&pssdpudpconn);
-
-	os_timer_disarm(&ssdp_time_serv);
-	os_timer_setfn(&ssdp_time_serv, (os_timer_func_t *)airkiss_wifilan_time_callback, NULL);
-	os_timer_arm(&ssdp_time_serv, 1000, 1);//1s
-}
-
-void ICACHE_FLASH_ATTR
-smartconfig_onLink(void *pdata)
-{
-	struct station_config *sta_conf = pdata;
-	os_printf("SSID: %s\n", sta_conf->ssid);
-	os_printf("PWD: %s\n", sta_conf->password);
-
-	os_strncpy(sysCfg.sta_ssid, sta_conf->ssid, sizeof(sysCfg.sta_ssid) - 1);
-	os_strncpy(sysCfg.sta_pwd, sta_conf->password, sizeof(sysCfg.sta_pwd) - 1);
-	sysCfg.sta_type = STA_TYPE;
-
-    wifi_station_set_config(sta_conf);
-    wifi_station_disconnect();
-    wifi_station_connect();
-
-	os_timer_disarm(&check_ip_timer);
-	os_timer_setfn(&check_ip_timer, (os_timer_func_t *)user_check_ip, NULL);
-	os_timer_arm(&check_ip_timer, 300, 0);
-}
-
-void ICACHE_FLASH_ATTR
-smartconfig_done(sc_status status, void *pdata)
-{
-    switch(status) {
-        case SC_STATUS_WAIT:
-            os_printf("SC_STATUS_WAIT\n");
-            break;
-        case SC_STATUS_FIND_CHANNEL:
-            os_printf("SC_STATUS_FIND_CHANNEL\n");
-            break;
-        case SC_STATUS_GETTING_SSID_PSWD:
-            os_printf("SC_STATUS_GETTING_SSID_PSWD\n");
-			sc_type *type = pdata;
-            if (*type == SC_TYPE_ESPTOUCH) {
-                os_printf("SC_TYPE:SC_TYPE_ESPTOUCH\n");
-            } else {
-                os_printf("SC_TYPE:SC_TYPE_AIRKISS\n");
-            }
-            break;
-        case SC_STATUS_LINK:
-//            os_printf("SC_STATUS_LINK\n");
-			os_printf("Got SSID and Passwd\n");
-			smartconfig_onLink(pdata);
-            break;
-        case SC_STATUS_LINK_OVER:
-            os_printf("SC_STATUS_LINK_OVER\n");
-            if (pdata != NULL) {
-				//SC_TYPE_ESPTOUCH
-                uint8 phone_ip[4] = {0};
-
-                os_memcpy(phone_ip, (uint8*)pdata, 4);
-                os_printf("Phone ip: %d.%d.%d.%d\n",phone_ip[0],phone_ip[1],phone_ip[2],phone_ip[3]);
-//            } else {
-//            	//SC_TYPE_AIRKISS - support airkiss v2.0
-//				airkiss_start_discover();
-//	先不做airkiss
-            }
-            smartconfig_stop();
-            break;
-    }
-	
-}
-
-void ICACHE_FLASH_ATTR
-user_start_smartconfig(void) 
-{
-	smartconfig_set_type(SC_TYPE_ESPTOUCH); //SC_TYPE_ESPTOUCH,SC_TYPE_AIRKISS,SC_TYPE_ESPTOUCH_AIRKISS
-	smartconfig_start(smartconfig_done);
-}
 /******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
@@ -544,7 +364,7 @@ user_start_smartconfig(void)
  *******************************************************************************/
 void user_init(void)
 {
-	uart_init(115200, 115200);
+    uart_init(BIT_RATE_115200, BIT_RATE_115200);
 	os_printf("SDK version:%s\n", system_get_sdk_version());
 	os_printf("CPU Frequency: %d MHz\n", system_get_cpu_freq());
 
@@ -552,14 +372,12 @@ void user_init(void)
 
 	s8 flag = CFG_Load(&sysCfg);
 	if(flag != 0) {
-		user_start_smartconfig();
-
+		user_start_smartconfig(&check_ip_timer, user_check_ip);
 	} else {
-		os_printf("SSID: %s\n", sysCfg.sta_ssid);
-		os_printf("PWD: %s\n", sysCfg.sta_pwd);
+		os_printf("SSID: %s  PWD: %s\n", sysCfg.sta_ssid, sysCfg.sta_pwd);
 		user_set_station_config(&sysCfg);
 	}
-	//	user_timer_config();
-	//	dns_test();
+	CFG_config(&sysCfg);
+	user_mqtt_init();
+	user_timer_config();
 }
-
