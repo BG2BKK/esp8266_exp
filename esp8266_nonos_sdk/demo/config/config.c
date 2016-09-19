@@ -114,7 +114,7 @@ void ICACHE_FLASH_ATTR CFG_config(SYSCFG *sysCfg)
 	os_strncpy(sysCfg->mqtt_user, MQTT_USER, sizeof(sysCfg->mqtt_user) - 1);
 	os_strncpy(sysCfg->mqtt_pass, MQTT_PASS, sizeof(sysCfg->mqtt_pass) - 1);
 	sysCfg->mqtt_keepalive = MQTT_KEEPALIVE;
-	sysCfg->security = 0;
+	sysCfg->security = DEFAULT_SECURITY;
 
 	INFO("CFG_config\r\n");
 }

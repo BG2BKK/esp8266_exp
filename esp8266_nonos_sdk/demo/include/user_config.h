@@ -7,8 +7,8 @@
 
 /*DEFAULT CONFIGURATIONS*/
 
-#define MQTT_HOST			"192.168.2.163" //or "mqtt.yourdomain.com"
-//#define MQTT_HOST			"192.168.1.101" //or "mqtt.yourdomain.com"
+//#define MQTT_HOST			"192.168.2.163" //or "mqtt.yourdomain.com"
+#define MQTT_HOST			"192.168.1.101" //or "mqtt.yourdomain.com"
 //#define MQTT_HOST			"45.78.38.250" //or "mqtt.yourdomain.com"
 //#define MQTT_HOST			"10.237.36.18" //or "mqtt.yourdomain.com"
 #define MQTT_PORT			1883

@@ -2,6 +2,7 @@
 
 extern MQTT_Client mqttClient;
 extern os_timer_t mqtt_timer;
+extern u8 MQTT_CONNECTED;
 
 void wifiConnectCb(uint8_t status)
 {
@@ -23,13 +24,14 @@ void mqttConnectedCb(uint32_t *args)
 //	MQTT_Publish(client, "/mqtt/topic/0", "hello0", 6, 0, 0);
 //	MQTT_Publish(client, "/mqtt/topic/1", "hello1", 6, 1, 0);
 //	MQTT_Publish(client, "/mqtt/topic/2", "hello2", 6, 2, 0);
-
+	MQTT_CONNECTED = 1;
 }
 
 void mqttDisconnectedCb(uint32_t *args)
 {
 	MQTT_Client* client = (MQTT_Client*)args;
 	INFO("MQTT: Disconnected\r\n");
+	MQTT_CONNECTED = 0;
 }
 
 void mqttPublishedCb(uint32_t *args)
@@ -62,8 +64,8 @@ void ICACHE_FLASH_ATTR user_mqtt_init(void)
 {
 	CFG_config(&sysCfg);
 	MQTT_InitConnection(&mqttClient, sysCfg.mqtt_host, sysCfg.mqtt_port, sysCfg.security);
-//	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
-	MQTT_InitClient(&mqttClient, sysCfg.device_id, NULL, NULL, sysCfg.mqtt_keepalive, 1);
+	MQTT_InitClient(&mqttClient, sysCfg.device_id, sysCfg.mqtt_user, sysCfg.mqtt_pass, sysCfg.mqtt_keepalive, 1);
+//	MQTT_InitClient(&mqttClient, sysCfg.device_id, NULL, NULL, sysCfg.mqtt_keepalive, 1);
 
 	MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
 	MQTT_OnConnected(&mqttClient, mqttConnectedCb);

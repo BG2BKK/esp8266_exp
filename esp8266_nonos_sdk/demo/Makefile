@@ -26,6 +26,7 @@ SUBDIRS=    \
 	driver	\
 	config	\
 	sc	\
+	cjson\
 	mqtt
 
 endif # } PDIR
@@ -54,7 +55,8 @@ COMPONENTS_eagle.app.v6 = \
 	driver/libdriver.a \
 	mqtt/libmqtt.a \
 	config/libconfig.a	\
-	sc/libsc.a	\
+	cjson/libcjson.a \
+	sc/libsc.a	
 
 LINKFLAGS_eagle.app.v6 = \
 	-L../lib        \
@@ -70,11 +72,11 @@ LINKFLAGS_eagle.app.v6 = \
 	-lhal					\
 	-lphy	\
 	-lpp	\
+	-lmain	\
 	-lnet80211	\
 	-llwip	\
 	-lwpa	\
 	-lcrypto	\
-	-lmain	\
 	-ljson	\
 	-lupgrade\
 	-lssl	\
@@ -127,7 +129,7 @@ DDEFINES +=				\
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)sc  -I $(PDIR)include/driver -I $(PDIR)mqtt/include
+INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)cjson -I $(PDIR)sc  -I $(PDIR)include/driver -I $(PDIR)mqtt/include -I $(PDIR)config 
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile
 

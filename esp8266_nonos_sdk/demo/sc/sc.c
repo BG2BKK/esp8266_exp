@@ -118,8 +118,7 @@ void ICACHE_FLASH_ATTR
 smartconfig_onLink(void *pdata)
 {
 	struct station_config *sta_conf = pdata;
-	os_printf("SSID: %s\n", sta_conf->ssid);
-	os_printf("PWD: %s\n", sta_conf->password);
+	os_printf("SSID: %s, PWD: %s\n", sta_conf->ssid, sta_conf->password);
 
 	os_strncpy(sysCfg.sta_ssid, sta_conf->ssid, sizeof(sysCfg.sta_ssid) - 1);
 	os_strncpy(sysCfg.sta_pwd, sta_conf->password, sizeof(sysCfg.sta_pwd) - 1);
