@@ -143,9 +143,11 @@ static void mqtt_pub_timerfunc(os_event_t *events)
 		os_sprintf(mac, MACSTR, MAC2STR(macaddr));
 	
 		uint32 timestamp = system_get_time();
+		uint32 heapsize  = system_get_free_heap_size();
 
 		cJSON *fmt=cJSON_CreateObject();
 		cJSON_AddNumberToObject(fmt,"timestamp", timestamp);
+		cJSON_AddNumberToObject(fmt,"heapsize", heapsize);
 		cJSON_AddStringToObject(fmt,"ip", ip);
 		cJSON_AddStringToObject(fmt,"mac", mac);
 		char *msg = cJSON_Print(fmt);
