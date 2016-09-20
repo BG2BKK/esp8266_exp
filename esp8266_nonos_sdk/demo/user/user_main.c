@@ -109,6 +109,7 @@ static void info_timerfunc(os_event_t *events)
 
 // 与网络有关的，比如tcp发送心跳、mqtt连接等，用wifi连接和断开事件来触发
 // 与用户任务有关的，比如显示oled数据、读取传感器信息，通过定时任务实现
+// 分清楚定时任务和状态任务的区别
 
 static void mqtt_timerfunc(os_event_t *events)
 {

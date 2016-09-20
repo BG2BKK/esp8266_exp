@@ -24,3 +24,30 @@ ESP8266 NONOS SDK experiment
 
 * [demo]
 	* 实现以上产品方案
+
+关心的技术点
+----------------
+
+* mqtt
+	* nonos sdk ---- esp_mqtt_proj || demo
+	* rtos sdk ---- esp_rtos_paho
+
+* cjson
+	* nonos sdk	---- demo
+	* rtos	sdk ---- 04protocol/json_demo
+
+* 在线升级 X
+
+* ssl
+
+* i2c_master
+	* i2c oled
+
+* esp now
+	* 设备不需要联网，可以通过手机直接通信、控制
+
+* tcp server
+* websocket
+* 深度睡眠
+
+
