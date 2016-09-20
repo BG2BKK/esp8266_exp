@@ -54,10 +54,10 @@ LOCAL void upgrade_recycle(void)
     system_upgrade_deinit();
     vTaskDelete(ota_task_handle);
     ota_task_handle = NULL;
- 
-	if (system_upgrade_flag_check() == UPGRADE_FLAG_FINISH) {
+    if (system_upgrade_flag_check() == UPGRADE_FLAG_FINISH) {
         system_upgrade_reboot(); // if need
     }
+
 }
 
 /******************************************************************************
