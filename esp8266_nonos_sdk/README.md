@@ -36,12 +36,14 @@ ESP8266 NONOS SDK experiment
 	* nonos sdk	---- demo
 	* rtos	sdk ---- 04protocol/json_demo
 
-* 在线升级 X
+* 在线升级 
+	* rtos	sdk	---- 06Cloud/FOTA_DEMO
 
 * ssl
 
 * i2c_master
 	* i2c oled
+	* rtos	sdk ---- 
 
 * esp now
 	* 设备不需要联网，可以通过手机直接通信、控制

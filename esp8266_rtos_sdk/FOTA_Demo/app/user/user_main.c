@@ -331,7 +331,6 @@ void toggle_led()
 *******************************************************************************/
 void task_blink(void *pvParameters)
 {
-
 	const portTickType xDelay = 500 / portTICK_RATE_MS;
 	while (1) {
 	printf("Hello, welcome to task_blink!\r\n");
