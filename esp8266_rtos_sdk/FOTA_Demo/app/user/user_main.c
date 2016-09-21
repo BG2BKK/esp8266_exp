@@ -30,6 +30,7 @@
 #include "freertos/task.h"
 #include "upgrade.h"
 #include "uart.h"
+#include "gpio.h"
 
 /*********************global param define start ******************************/
 LOCAL os_timer_t upgrade_timer;
@@ -37,6 +38,13 @@ LOCAL uint32 totallength = 0;
 LOCAL uint32 sumlength = 0;
 LOCAL bool flash_erased = false;
 LOCAL xTaskHandle *ota_task_handle = NULL;
+
+// CONSTANTS 
+#define DEMO_AP_SSID "dusri-line"
+#define DEMO_AP_PASSWORD "abkiskopataha"
+#define LED_GPIO_NUMBER 2
+
+
 /*********************global param define end *******************************/
 
 /******************************************************************************
@@ -51,13 +59,13 @@ LOCAL void upgrade_recycle(void)
     sumlength = 0;
     flash_erased = false;
     
-    system_upgrade_deinit();
-    vTaskDelete(ota_task_handle);
-    ota_task_handle = NULL;
     if (system_upgrade_flag_check() == UPGRADE_FLAG_FINISH) {
         system_upgrade_reboot(); // if need
     }
 
+    system_upgrade_deinit();
+    vTaskDelete(ota_task_handle);
+    ota_task_handle = NULL;
 }
 
 /******************************************************************************
@@ -301,6 +309,38 @@ uint32 user_rf_cal_sector_set(void)
 }
 
 /******************************************************************************
+ * FunctionName : toggle_led
+ * Description  : toggle LED_GPIO_NUMBER state
+ * Parameters   : none
+ * Returns      : none
+*******************************************************************************/
+void toggle_led()
+{
+	static bool led_on = true;
+
+	led_on = !led_on;
+	GPIO_OUTPUT_SET(LED_GPIO_NUMBER, led_on);
+}
+
+
+/******************************************************************************
+ * FunctionName : task_blink
+ * Description  : entry of task_blink, toggles LED_GPIO_NUMBER forever
+ * Parameters   : none
+ * Returns      : none
+*******************************************************************************/
+void task_blink(void *pvParameters)
+{
+
+	const portTickType xDelay = 500 / portTICK_RATE_MS;
+	while (1) {
+	printf("Hello, welcome to task_blink!\r\n");
+         vTaskDelay( xDelay );
+	}
+	vTaskDelete(NULL);
+}
+
+/******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
  * Parameters   : none
@@ -310,6 +350,7 @@ void ICACHE_FLASH_ATTR
 user_init(void)
 {
 	UART_SetBaudrate(UART0, 115200);
+    printf("SDK version:%s\n", system_get_sdk_version());
     printf("SDK version:%s\n", system_get_sdk_version());
 	printf("spi_size_map: %d\n", system_get_flash_size_map());
     wifi_set_opmode(STATION_MODE);
@@ -322,5 +363,7 @@ user_init(void)
         wifi_station_connect();
     }
     wifi_set_event_handler_cb(fota_event_cb);
+
+	xTaskCreate(task_blink, "blink", 256, NULL, 2, NULL);
 }
 
