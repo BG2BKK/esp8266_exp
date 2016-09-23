@@ -333,8 +333,8 @@ void task_blink(void *pvParameters)
 {
 	const portTickType xDelay = 500 / portTICK_RATE_MS;
 	while (1) {
-	printf("Hello, welcome to task_blink!\r\n");
-         vTaskDelay( xDelay );
+		printf("Hello, welcome to task_blink!\r\n");
+		vTaskDelay( xDelay );
 	}
 	vTaskDelete(NULL);
 }
@@ -349,7 +349,6 @@ void ICACHE_FLASH_ATTR
 user_init(void)
 {
 	UART_SetBaudrate(UART0, 115200);
-    printf("SDK version:%s\n", system_get_sdk_version());
     printf("SDK version:%s\n", system_get_sdk_version());
 	printf("spi_size_map: %d\n", system_get_flash_size_map());
     wifi_set_opmode(STATION_MODE);
