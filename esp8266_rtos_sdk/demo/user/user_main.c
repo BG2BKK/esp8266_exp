@@ -30,8 +30,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "uart.h"
+#include "i2c.h"
 
 #include "user_sensor.h"
+#include "user_display.h"
 #include "multicast_config.h"
 
 /******************************************************************************
@@ -232,11 +234,11 @@ uint32 user_rf_cal_sector_set(void)
 *******************************************************************************/
 void user_init(void)
 {
-
 	UART_SetBaudrate(UART0, 115200);
     printf("SDK version:%s\n", system_get_sdk_version());
 
     wifi_set_event_handler_cb(wifi_event_handler_cb);
-    xTaskCreate(wifi_config,"wfcf",512,NULL,4,NULL);
+    xTaskCreate(wifi_config,"wifi_config",512,NULL,4,NULL);
 	xTaskCreate(user_sensor, "user_sensor", 1024, NULL, 5, NULL);
+	xTaskCreate(user_display, "user_display", 1024, NULL, 6, NULL);
 }

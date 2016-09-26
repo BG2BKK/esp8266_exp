@@ -1,0 +1,16 @@
+sudo ../tools/esptool.py --port /dev/ttyUSB1 --baud 460800 erase_flash
+sudo ../tools/esptool.py --port /dev/ttyUSB1 --baud 460800 write_flash -fm dio -fs 32m -ff 40m 0x00000 ../bin/boot_v1.6.bin 0x01000 ../bin/upgrade/user1.4096.new.6.bin 0x3fc000 ../bin/esp_init_data_default.bin 0x3fe000 ../bin/blank.bin 0x3fb000 ../bin/blank.bin  0xfe000 ../bin/19d773a0d0af444671e878c215a2ae2efcde976e.bin
+
+curl 192.168.4.1/client?command=info
+
+curl -X POST -H "Content-Type:application/json" -d '{"Request":{"Station":{"Connect_Station":{"ssid":"huang","password":"sh19901222","token":"19d773a0d0af444671e878c215a2ae2efcde976e"}}}}' http://192.168.4.1/config?command=wifi
+
+curl -X POST -H "Content-Type:application/json" -d '{"period":1000,"status":3,"color":{"red":0,"green":0,"blue":0,"white":255}' http://192.168.4.1/config?command=light
+
+curl -X POST -H "Authorization:token 1070417213605ff25d4b98aa33f518db48fc529e" -d '{"token":"19d773a0d0af444671e878c215a2ae2efcde976e"}' http://iot.espressif.cn/v1/key/authorize/
+
+curl -X GET -H "Content-Type:application/json" -H "Authorization:token 4742404e7c3ecffe4aad7423e266963d59d4e6c1" http://iot.espressif.cn/v1/datastreams/light/datapoint/
+
+curl -X POST -H "Content-Type:application/json" -H "Authorization:token 4742404e7c3ecffe4aad7423e266963d59d4e6c1" -d '{"datapoint":{"x": 2, "y": 1000,"z": {"red": 0, "green": 255, "blue": 0, "white": 0}}} ' http://iot.espressif.cn/v1/datastreams/light/datapoint/?deliver_to_device=true
+
+

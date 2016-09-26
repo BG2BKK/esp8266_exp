@@ -80,7 +80,9 @@ user_rf_pre_init(void)
 void ICACHE_FLASH_ATTR
 user_init(void)
 {
+	UART_SetBaudrate(UART0, 115200);
     os_printf("SDK version:%s\n", system_get_sdk_version());
+    os_printf("New SDK version:%s\n", system_get_sdk_version());
 
  #if ESP_PLATFORM
      /*Initialization of the peripheral drivers*/
@@ -104,4 +106,3 @@ user_init(void)
      user_webserver_init(SERVER_PORT);
  #endif
 }
-

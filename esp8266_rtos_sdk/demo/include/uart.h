@@ -63,6 +63,34 @@ typedef enum {
     PARITY_EN  = 0x2
 } UartExistParity;
 
+// Number of stop bits, (bit[5:4], << UART_STOP_BIT_NUM_S)
+typedef enum _UART_STOP_BIT
+{
+	UART_1_STOP_BIT    = 0x01,
+	UART_1_5_STOP_BITS = 0x02,
+	UART_2_STOP_BITS   = 0x03
+} UART_STOP_BIT;
+
+
+// Number of bits per transfer,(bit[3:2] << UART_BIT_NUM_S
+typedef enum _UART_XFER_BIT
+{
+	UART_XFER_5_BIT = 0x0,
+	UART_XFER_6_BIT = 0x1,
+	UART_XFER_7_BIT = 0x02,
+	UART_XFER_8_BIT = 0x03
+} UART_XFER_BIT;
+
+
+// Parity mode (bit[1:0])
+typedef enum _UART_PARITY_MODE
+{
+	UART_PARITY_NONE	= 0x00,
+	UART_PARITY_EVEN	= 0x02,
+	UART_PARITY_ODD		= 0x03
+} UART_PARITY_MODE;
+
+
 typedef enum {
     BIT_RATE_300     = 300,
     BIT_RATE_600     = 600,
@@ -80,7 +108,7 @@ typedef enum {
     BIT_RATE_921600  = 921600,
     BIT_RATE_1843200 = 1843200,
     BIT_RATE_3686400 = 3686400,
-} UART_BautRate; //you can add any rate you need in this range
+} UART_BaudRate; //you can add any rate you need in this range
 
 typedef enum {
     USART_HardwareFlowControl_None    = 0x0,
@@ -98,7 +126,7 @@ typedef enum {
 } UART_LineLevelInverse;
 
 typedef struct {
-    UART_BautRate   baud_rate;
+    UART_BaudRate   baud_rate;
     UART_WordLength data_bits;
     UART_ParityMode parity;    // chip size in byte
     UART_StopBits   stop_bits;
@@ -114,6 +142,49 @@ typedef struct {
     uint8  UART_RX_FifoFullIntrThresh;
 } UART_IntrConfTypeDef;
 
+
+// Flow control, not implemented
+typedef enum _UART_FLOW_CONTROL
+{
+    UART_NONE_FLOW_CTRL,
+    UART_HARDWARE_FLOW_CTRL,
+    UART_XON_XOFF_FLOW_CTRL
+} UART_FLOW_CONTROL;
+
+
+typedef struct _uart_param_t
+{
+	UART_BaudRate 	 	uart_baud_rate;
+	UART_XFER_BIT    	uart_xfer_bit;
+	UART_PARITY_MODE  	uart_parity_mode;
+	UART_STOP_BIT  		uart_stop_bit;
+	UART_FLOW_CONTROL	uart_flow_ctrl;
+} uart_param_t;
+
+
+/* FreeRTOS UART event stuff */
+
+enum
+{
+    UART_EVENT_RX_CHAR,
+    UART_EVENT_MAX
+};
+
+typedef struct _uart_event_
+{
+    uint32_t event;
+    uint8_t param;
+} uart_event_t;
+
+
+
+void uart0_init(uart_param_t* param);
+void uart0_putchar(char ch);
+void uart0_puts(const char *str);
+
+void uart1_init(void);
+void uart1_putchar(char ch);
+void uart1_puts(const char *str);
 //=======================================
 
 /** \defgroup Driver_APIs Driver APIs

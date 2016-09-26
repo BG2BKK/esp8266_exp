@@ -28,8 +28,11 @@
 // #define DEMO_WIFI_SSID     "UTT-750"
 // #define DEMO_WIFI_PASSWORD  "espressif"
 
-#define DEMO_WIFI_SSID     "TP-LINK_A0E338"
-#define DEMO_WIFI_PASSWORD  "huanghuang"
+// #define DEMO_WIFI_SSID     "TP-LINK_A0E338"
+// #define DEMO_WIFI_PASSWORD  "huanghuang"
+
+#define DEMO_WIFI_SSID     "huang"
+#define DEMO_WIFI_PASSWORD  "sh19901222"
 
 #define MSGBUFSIZE          1024
 

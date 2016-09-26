@@ -27,10 +27,14 @@
 
 #include "openssl_demo.h"
 
-#define SSID "TP-LINK_A0E338"
-#define PASSWORD "huanghuang"
+// #define SSID "TP-LINK_A0E338"
+// #define PASSWORD "huanghuang"
+
 // #define SSID "Sina Plaza Mobile"
 // #define PASSWORD "urtheone"
+
+#define SSID "huang"
+#define PASSWORD "sh19901222"
 
 
 #endif

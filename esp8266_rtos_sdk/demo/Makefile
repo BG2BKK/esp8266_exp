@@ -24,7 +24,8 @@ SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=    \
 	user    \
 	driver	\
-	u8glib\
+	oled	\
+	paho
 
 endif # } PDIR
 
@@ -49,7 +50,8 @@ endif
 COMPONENTS_eagle.app.v6 = \
 	user/libuser.a  \
 	driver/libdriver.a\
-	u8glib/libu8g.a
+	oled/liboled.a	\
+	paho/libpaho.a
 
 LINKFLAGS_eagle.app.v6 = \
 	-L$(SDK_PATH)/lib        \
@@ -126,7 +128,7 @@ DDEFINES +=				\
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include
+INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)oled/include
 sinclude $(SDK_PATH)/Makefile
 
 .PHONY: FORCE

@@ -27,14 +27,15 @@
 #define DEMO_LOCAL_CLIENT_TCP_PORT 1000
 #define DEMO_LOCAL_SERVER_TCP_PORT 443
 
-// #define DEMO_TARGET_NAME "www.baidu.com"
-// #define DEMO_TARGET_TCP_PORT 443
-#define DEMO_TARGET_NAME "192.168.1.101"
-#define DEMO_TARGET_TCP_PORT 8443
+#define DEMO_TARGET_NAME "www.baidu.com"
+#define DEMO_TARGET_TCP_PORT 443
+
+// #define DEMO_TARGET_NAME "192.168.1.101"
+// #define DEMO_TARGET_TCP_PORT 8443
 
 
-// #define DEMO_CLIENT_REQUEST "{\"path\": \"/\", \"method\": \"GET\"}\r\n"
-#define DEMO_CLIENT_REQUEST "GET /\r\n"
+#define DEMO_CLIENT_REQUEST "{\"path\": \"/\", \"method\": \"GET\"}\r\n"
+// #define DEMO_CLIENT_REQUEST "GET /\r\n"
 
 #define DEMO_SERVER_ACK "HTTP/1.1 200 OK\r\n" \
                         "Content-Type: text/html\r\n" \
