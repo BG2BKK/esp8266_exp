@@ -1,8 +1,26 @@
 #include "user_display.h"
 
+bool bootup2() 
+{
+	i2c_init();
+	bool flag = oled_init(1);
+	if(!flag) {
+		printf("oled display boot failed\n");
+		return flag;
+	}
+	oled_select_font(1, 0);
+	printf("display begin %dx%d\n", oled_get_width(1), oled_get_height(1));
+	return true;
+}
+
 bool bootup() 
 {
 	i2c_init();
+
+	u8g_t u8g;
+//	u8g.i2c_addr = (uint8_t)(0x3c << 1); 
+	u8g_InitComFn(&u8g, &u8g_dev_ssd1306_128x64_i2c, u8g_com_hw_i2c_fn);
+
 	bool flag = oled_init(1);
 	if(!flag) {
 		printf("oled display boot failed\n");

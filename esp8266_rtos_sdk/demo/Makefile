@@ -25,9 +25,14 @@ SUBDIRS=    \
 	user    \
 	driver	\
 	oled	\
-	paho
+	paho	\
+	u8glib	\
 
 endif # } PDIR
+
+SDK_PATH=/home/huang/workspace/nodemcu/esp8266_exp/esp8266_rtos_sdk
+BIN_PATH=/home/huang/workspace/nodemcu/esp8266_exp/esp8266_rtos_sdk/bin
+
 
 LDDIR = $(SDK_PATH)/ld
 
@@ -51,7 +56,8 @@ COMPONENTS_eagle.app.v6 = \
 	user/libuser.a  \
 	driver/libdriver.a\
 	oled/liboled.a	\
-	paho/libpaho.a
+	paho/libpaho.a	\
+	u8glib/libu8g.a
 
 LINKFLAGS_eagle.app.v6 = \
 	-L$(SDK_PATH)/lib        \
@@ -128,7 +134,7 @@ DDEFINES +=				\
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)oled/include
+INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)oled/include -I $(PDIR)u8glib/ -I $(PDIR)oled/
 sinclude $(SDK_PATH)/Makefile
 
 .PHONY: FORCE

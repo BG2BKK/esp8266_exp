@@ -52,20 +52,20 @@ LOCAL xTaskHandle *ota_task_handle = NULL;
  * Description  : recyle upgrade task, if OTA finish switch to run another bin
  * Parameters   :
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 LOCAL void upgrade_recycle(void)
 {
 	totallength = 0;
-    sumlength = 0;
-    flash_erased = false;
-    
-    if (system_upgrade_flag_check() == UPGRADE_FLAG_FINISH) {
-        system_upgrade_reboot(); // if need
-    }
+	sumlength = 0;
+	flash_erased = false;
 
-    system_upgrade_deinit();
-    vTaskDelete(ota_task_handle);
-    ota_task_handle = NULL;
+	if (system_upgrade_flag_check() == UPGRADE_FLAG_FINISH) {
+		system_upgrade_reboot(); // if need
+	}
+
+	system_upgrade_deinit();
+	vTaskDelete(ota_task_handle);
+	ota_task_handle = NULL;
 }
 
 /******************************************************************************
@@ -75,158 +75,157 @@ LOCAL void upgrade_recycle(void)
  *                char *pusrdata : remote data
  *                length         : data length
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 void upgrade_download(int sta_socket,char *pusrdata, unsigned short length)
 {
-    char *ptr = NULL;
-    char *ptmp2 = NULL;
-    char lengthbuffer[32];
-    if (totallength == 0 && (ptr = (char *)strstr(pusrdata, "\r\n\r\n")) != NULL &&
-            (ptr = (char *)strstr(pusrdata, "Content-Length")) != NULL) {
-        ptr = (char *)strstr(pusrdata, "\r\n\r\n");
-        length -= ptr - pusrdata;
-        length -= 4;
-        printf("upgrade file download start.\n");
-        
-        ptr = (char *)strstr(pusrdata, "Content-Length: ");
-        if (ptr != NULL) {
-            ptr += 16;
-            ptmp2 = (char *)strstr(ptr, "\r\n");
+	char *ptr = NULL;
+	char *ptmp2 = NULL;
+	char lengthbuffer[32];
+	if (totallength == 0 && (ptr = (char *)strstr(pusrdata, "\r\n\r\n")) != NULL &&
+			(ptr = (char *)strstr(pusrdata, "Content-Length")) != NULL) {
+		ptr = (char *)strstr(pusrdata, "\r\n\r\n");
+		length -= ptr - pusrdata;
+		length -= 4;
+		printf("upgrade file download start.\n");
 
-            if (ptmp2 != NULL) {
-                memset(lengthbuffer, 0, sizeof(lengthbuffer));
-                memcpy(lengthbuffer, ptr, ptmp2 - ptr);
-                sumlength = atoi(lengthbuffer);
-                if(sumlength > 0) {
-                	if (false == system_upgrade(pusrdata, sumlength)) {
-                		system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-                        goto ota_recycle;
-                	}
-                	flash_erased = true;
-                	ptr = (char *)strstr(pusrdata, "\r\n\r\n");
-                	if (false == system_upgrade(ptr + 4, length)){
-                		system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-                        goto ota_recycle;
-                	}
-                	totallength += length;
-                	printf("sumlength = %d\n",sumlength);
-                	return;
-                }
-            } else {
-                printf("sumlength failed\n");
-                system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-                goto ota_recycle;
-            }
-        } else {
-            printf("Content-Length: failed\n");
-            system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-            goto ota_recycle;
-        } 
-    } else {
-        totallength += length;
-        printf("totallen = %d\n",totallength);
-        if (false == system_upgrade(pusrdata, length)){
-        	system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-            goto ota_recycle;
-        }
-        if (totallength == sumlength) {
-	        printf("upgrade file download finished.\n");
+		ptr = (char *)strstr(pusrdata, "Content-Length: ");
+		if (ptr != NULL) {
+			ptr += 16;
+			ptmp2 = (char *)strstr(ptr, "\r\n");
 
-	        if(upgrade_crc_check(system_get_fw_start_sec(),sumlength) != true) {
+			if (ptmp2 != NULL) {
+				memset(lengthbuffer, 0, sizeof(lengthbuffer));
+				memcpy(lengthbuffer, ptr, ptmp2 - ptr);
+				sumlength = atoi(lengthbuffer);
+				if(sumlength > 0) {
+					if (false == system_upgrade(pusrdata, sumlength)) {
+						system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+						goto ota_recycle;
+					}
+					flash_erased = true;
+					ptr = (char *)strstr(pusrdata, "\r\n\r\n");
+					if (false == system_upgrade(ptr + 4, length)){
+						system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+						goto ota_recycle;
+					}
+					totallength += length;
+					printf("sumlength = %d\n",sumlength);
+					return;
+				}
+			} else {
+				printf("sumlength failed\n");
+				system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+				goto ota_recycle;
+			}
+		} else {
+			printf("Content-Length: failed\n");
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+			goto ota_recycle;
+		} 
+	} else {
+		totallength += length;
+		printf("totallen = %d\n",totallength);
+		if (false == system_upgrade(pusrdata, length)){
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+			goto ota_recycle;
+		}
+		if (totallength == sumlength) {
+			printf("upgrade file download finished.\n");
+
+			if(upgrade_crc_check(system_get_fw_start_sec(),sumlength) != true) {
 				printf("upgrade crc check failed !\n");
-		        system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-		        goto ota_recycle;
-		    }
+				system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+				goto ota_recycle;
+			}
 
-        system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
-        goto ota_recycle;      
-        } else {
-            return;
-        }
-    }
-
+			system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
+			goto ota_recycle;      
+		} else {
+			return;
+		}
+	}
 
 ota_recycle :
-		printf("go to ota recycle\n");
-        close(sta_socket);
-        upgrade_recycle();
+	printf("go to ota recycle\n");
+	close(sta_socket);
+	upgrade_recycle();
 }
 /******************************************************************************
  * FunctionName : fota_begin
  * Description  : ota_task function
  * Parameters   : task param
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 void fota_begin(void *pvParameters)
 {
 
-    int recbytes;
-    int sin_size;
-    int sta_socket;
-    char recv_buf[1460];
-    uint8 user_bin[9] = {0};
-    struct sockaddr_in remote_ip;
-    printf("Hello, welcome to client!\r\n");
-    while (1) {
-	    sta_socket = socket(PF_INET,SOCK_STREAM,0);
-	    if (-1 == sta_socket)
-	    {
+	int recbytes;
+	int sin_size;
+	int sta_socket;
+	char recv_buf[1460];
+	uint8 user_bin[9] = {0};
+	struct sockaddr_in remote_ip;
+	printf("Hello, welcome to client!\r\n");
+	while (1) {
+		sta_socket = socket(PF_INET,SOCK_STREAM,0);
+		if (-1 == sta_socket)
+		{
 
-	        close(sta_socket);
-	        printf("socket fail !\r\n");
-	        continue;
-	    }
-	    printf("socket ok!\r\n");
-	    bzero(&remote_ip,sizeof(struct sockaddr_in));
-	    remote_ip.sin_family=AF_INET;
-	    remote_ip.sin_addr.s_addr= inet_addr(DEMO_SERVER);
-	    remote_ip.sin_port=htons(DEMO_SERVER_PORT);
+			close(sta_socket);
+			printf("socket fail !\r\n");
+			continue;
+		}
+		printf("socket ok!\r\n");
+		bzero(&remote_ip,sizeof(struct sockaddr_in));
+		remote_ip.sin_family=AF_INET;
+		remote_ip.sin_addr.s_addr= inet_addr(DEMO_SERVER);
+		remote_ip.sin_port=htons(DEMO_SERVER_PORT);
 
-	    if(0 != connect(sta_socket,(struct sockaddr *)(&remote_ip),sizeof(struct sockaddr)))
-	    {
-	        close(sta_socket);
-	        printf("connect fail!\r\n");
-	        system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-	        upgrade_recycle();
-	    }
-	    printf("connect ok!\r\n");
-	    char *pbuf = (char *)zalloc(512);
-	    if (system_upgrade_userbin_check() == UPGRADE_FW_BIN1) {
-	        memcpy(user_bin, "user2.bin", 10);
-	    } else if (system_upgrade_userbin_check() == UPGRADE_FW_BIN2) {
-	        memcpy(user_bin, "user1.bin", 10);
-	    }
+		if(0 != connect(sta_socket,(struct sockaddr *)(&remote_ip),sizeof(struct sockaddr)))
+		{
+			close(sta_socket);
+			printf("connect fail!\r\n");
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+			upgrade_recycle();
+		}
+		printf("connect ok!\r\n");
+		char *pbuf = (char *)zalloc(512);
+		if (system_upgrade_userbin_check() == UPGRADE_FW_BIN1) {
+			memcpy(user_bin, "user2.bin", 10);
+		} else if (system_upgrade_userbin_check() == UPGRADE_FW_BIN2) {
+			memcpy(user_bin, "user1.bin", 10);
+		}
 
-	    sprintf(pbuf, "GET /download/%s HTTP/1.0\r\nHost: %s\r\n"pheadbuffer"",
-	                   user_bin, DEMO_SERVER);
+		sprintf(pbuf, "GET /download/%s HTTP/1.0\r\nHost: %s\r\n"pheadbuffer"",
+				user_bin, DEMO_SERVER);
 
-	    printf(pbuf);
-        if(write(sta_socket,pbuf,strlen(pbuf)+1) < 0) {
-	            close(sta_socket);
-	            printf("send fail\n");
-	            free(pbuf);
-	            system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-	            upgrade_recycle();
-	    }
-        printf("send success\n");
-        free(pbuf);
+		printf(pbuf);
+		if(write(sta_socket,pbuf,strlen(pbuf)+1) < 0) {
+			close(sta_socket);
+			printf("send fail\n");
+			free(pbuf);
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+			upgrade_recycle();
+		}
+		printf("send success\n");
+		free(pbuf);
 
-        while((recbytes = read(sta_socket ,recv_buf,1460)) >= 0){           
-            if(recbytes != 0 ) {
-                upgrade_download(sta_socket,recv_buf,recbytes);
-            } 
-//			else {
-//				break;
-//			}
-        }
-        printf("recbytes = %d\n",recbytes);
-        if(recbytes < 0){
-            printf("read data fail!\r\n");
-            close(sta_socket);
-            system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
-	        upgrade_recycle();
-        }
-    }
+		while((recbytes = read(sta_socket ,recv_buf,1460)) >= 0){           
+			if(recbytes != 0 ) {
+				upgrade_download(sta_socket,recv_buf,recbytes);
+			} 
+			//			else {
+			//				break;
+			//			}
+		}
+		printf("recbytes = %d\n",recbytes);
+		if(recbytes < 0){
+			printf("read data fail!\r\n");
+			close(sta_socket);
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);	
+			upgrade_recycle();
+		}
+	}
 }
 
 /******************************************************************************
@@ -234,33 +233,33 @@ void fota_begin(void *pvParameters)
  * Description  : ota_task function
  * Parameters   : task param
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 void fota_event_cb(System_Event_t *event)
 {
-    if (event == NULL) {
-        return;
-    }
+	if (event == NULL) {
+		return;
+	}
 
-    switch (event->event_id) {
-        case EVENT_STAMODE_GOT_IP:
-            os_printf("sta got ip , creat fota task\n");
-            if (ota_task_handle == NULL) {
-                system_upgrade_flag_set(UPGRADE_FLAG_START);
-                system_upgrade_init();
-         	    xTaskCreate(fota_begin, "fota_task", 1024, NULL, 1, ota_task_handle);
-        	}
-            os_timer_disarm(&upgrade_timer);
-            os_timer_setfn(&upgrade_timer, (os_timer_func_t *)upgrade_recycle, NULL);
-            os_timer_arm(&upgrade_timer, OTA_TIMEOUT, 0);
-            break;
-        case EVENT_SOFTAPMODE_STADISCONNECTED:
-            printf("sta disconnect from AP\n");
-            printf("recyle ota task");
-            system_upgrade_flag_set(UPGRADE_FLAG_IDLE);
-            upgrade_recycle();
-        default:
-            break;
-    }
+	switch (event->event_id) {
+		case EVENT_STAMODE_GOT_IP:
+			os_printf("sta got ip , creat fota task\n");
+			if (ota_task_handle == NULL) {
+				system_upgrade_flag_set(UPGRADE_FLAG_START);
+				system_upgrade_init();
+				xTaskCreate(fota_begin, "fota_task", 1024, NULL, 1, ota_task_handle);
+			}
+			os_timer_disarm(&upgrade_timer);
+			os_timer_setfn(&upgrade_timer, (os_timer_func_t *)upgrade_recycle, NULL);
+			os_timer_arm(&upgrade_timer, OTA_TIMEOUT, 0);
+			break;
+		case EVENT_SOFTAPMODE_STADISCONNECTED:
+			printf("sta disconnect from AP\n");
+			printf("recyle ota task");
+			system_upgrade_flag_set(UPGRADE_FLAG_IDLE);
+			upgrade_recycle();
+		default:
+			break;
+	}
 }
 
 
@@ -275,37 +274,37 @@ void fota_event_cb(System_Event_t *event)
  *                C : sdk parameters
  * Parameters   : none
  * Returns      : rf cal sector
-*******************************************************************************/
+ *******************************************************************************/
 uint32 user_rf_cal_sector_set(void)
 {
-    flash_size_map size_map = system_get_flash_size_map();
-    uint32 rf_cal_sec = 0;
+	flash_size_map size_map = system_get_flash_size_map();
+	uint32 rf_cal_sec = 0;
 
-    switch (size_map) {
-        case FLASH_SIZE_4M_MAP_256_256:
-            rf_cal_sec = 128 - 5;
-            break;
+	switch (size_map) {
+		case FLASH_SIZE_4M_MAP_256_256:
+			rf_cal_sec = 128 - 5;
+			break;
 
-        case FLASH_SIZE_8M_MAP_512_512:
-            rf_cal_sec = 256 - 5;
-            break;
+		case FLASH_SIZE_8M_MAP_512_512:
+			rf_cal_sec = 256 - 5;
+			break;
 
-        case FLASH_SIZE_16M_MAP_512_512:
-        case FLASH_SIZE_16M_MAP_1024_1024:
-            rf_cal_sec = 512 - 5;
-            break;
+		case FLASH_SIZE_16M_MAP_512_512:
+		case FLASH_SIZE_16M_MAP_1024_1024:
+			rf_cal_sec = 512 - 5;
+			break;
 
-        case FLASH_SIZE_32M_MAP_512_512:
-        case FLASH_SIZE_32M_MAP_1024_1024:
-            rf_cal_sec = 1024 - 5;
-            break;
+		case FLASH_SIZE_32M_MAP_512_512:
+		case FLASH_SIZE_32M_MAP_1024_1024:
+			rf_cal_sec = 1024 - 5;
+			break;
 
-        default:
-            rf_cal_sec = 0;
-            break;
-    }
+		default:
+			rf_cal_sec = 0;
+			break;
+	}
 
-    return rf_cal_sec;
+	return rf_cal_sec;
 }
 
 /******************************************************************************
@@ -313,7 +312,7 @@ uint32 user_rf_cal_sector_set(void)
  * Description  : toggle LED_GPIO_NUMBER state
  * Parameters   : none
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 void toggle_led()
 {
 	static bool led_on = true;
@@ -328,7 +327,7 @@ void toggle_led()
  * Description  : entry of task_blink, toggles LED_GPIO_NUMBER forever
  * Parameters   : none
  * Returns      : none
-*******************************************************************************/
+ *******************************************************************************/
 void task_blink(void *pvParameters)
 {
 	const portTickType xDelay = 500 / portTICK_RATE_MS;
@@ -344,23 +343,23 @@ void task_blink(void *pvParameters)
  * Description  : entry of user application, init user function here
  * Parameters   : none
  * Returns      : none
-*******************************************************************************/
-void ICACHE_FLASH_ATTR
+ *******************************************************************************/
+	void ICACHE_FLASH_ATTR
 user_init(void)
 {
 	UART_SetBaudrate(UART0, 115200);
-    printf("SDK version:%s\n", system_get_sdk_version());
+	printf("SDK version:%s\n", system_get_sdk_version());
 	printf("spi_size_map: %d\n", system_get_flash_size_map());
-    wifi_set_opmode(STATION_MODE);
-    {
-        struct station_config config;
-        bzero(&config, sizeof(struct station_config));
-        sprintf(config.ssid, DEMO_WIFI_SSID);
-        sprintf(config.password, DEMO_WIFI_PASSWORD);
-        wifi_station_set_config(&config);
-        wifi_station_connect();
-    }
-    wifi_set_event_handler_cb(fota_event_cb);
+	wifi_set_opmode(STATION_MODE);
+	{
+		struct station_config config;
+		bzero(&config, sizeof(struct station_config));
+		sprintf(config.ssid, DEMO_WIFI_SSID);
+		sprintf(config.password, DEMO_WIFI_PASSWORD);
+		wifi_station_set_config(&config);
+		wifi_station_connect();
+	}
+	wifi_set_event_handler_cb(fota_event_cb);
 
 	xTaskCreate(task_blink, "blink", 256, NULL, 2, NULL);
 }

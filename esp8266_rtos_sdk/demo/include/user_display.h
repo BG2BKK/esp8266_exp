@@ -7,6 +7,8 @@
 #include "lwip/sockets.h"
 #include "stdio.h"
 #include "i2c.h"
+#include "u8g.h"
+#include "u8g_esp8266.h"
 
 void user_display(void *);
 

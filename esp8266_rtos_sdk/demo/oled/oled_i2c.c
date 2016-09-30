@@ -70,7 +70,7 @@
 
 
 
-LOCAL void ICACHE_FLASH_ATTR _command(uint8_t adress, uint8_t c)
+void ICACHE_FLASH_ATTR _command(uint8_t adress, uint8_t c)
 {
     bool ret;
     i2c_start();
@@ -83,7 +83,7 @@ LOCAL void ICACHE_FLASH_ATTR _command(uint8_t adress, uint8_t c)
 }
 
 
-LOCAL void ICACHE_FLASH_ATTR _data(uint8_t adress, uint8_t d)
+void ICACHE_FLASH_ATTR _data(uint8_t adress, uint8_t d)
 {
     bool ret;
     i2c_start();

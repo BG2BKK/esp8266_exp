@@ -23,7 +23,6 @@
 #ifndef I2C_H_
 #define I2C_H_
 
-
 /**
  * @brief   Initialize I2C GPIO pins
  */
@@ -58,6 +57,4 @@ uint8_t i2c_read(void);
  * @param   ack ACK (true) or NACK (false)
  */
 void i2c_set_ack(bool ack);
-
-
 #endif
